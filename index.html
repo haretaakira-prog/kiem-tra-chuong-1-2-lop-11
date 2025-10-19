@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài tập trắc nghiệm Hóa học 11 - Cân bằng hóa học & Nitrogen-Sulfur</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jsPDF and html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f3ff 0%, #e2e8f0 100%);
+        }
+
+        .question-container {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .question-container:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+        }
+
+        .correct {
+            background-color: #e6fffa;
+            border-left-color: #38a169;
+        }
+
+        .incorrect {
+            background-color: #fff5f5;
+            border-left-color: #e53e3e;
+        }
+
+        .correct-answer-text {
+            color: #38a169;
+            font-weight: 600;
+        }
+
+        .feedback-text {
+             font-style: italic;
+        }
+        
+        .btn {
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .question-prefix {
+            color: #C13584; /* Instagram Pink/Purple */
+            font-weight: bold;
+        }
+        
+        .chapter-title {
+            color: #2563eb; /* Bright Blue */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .question-icon {
+            flex-shrink: 0;
+            width: 2.5rem; /* 40px */
+            height: 2.5rem;
+            color: #3b82f6;
+            margin-top: 4px;
+        }
+        
+        .question-content {
+            flex: 1;
+        }
+        
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        
+        .timer {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background-color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #dc2626;
+            z-index: 50;
+        }
+
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- User Info Modal -->
+    <div id="info-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-center">Thông tin thí sinh</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Họ và tên</label>
+                    <input type="text" id="name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Nguyễn Văn A">
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="nguyenvana@example.com">
+                </div>
+                <p id="info-error" class="text-red-500 text-sm hidden">Vui lòng điền đầy đủ thông tin.</p>
+                <button id="start-btn" class="btn w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700">Bắt đầu làm bài</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Timer Display -->
+    <div id="timer-display" class="timer hidden">15:00</div>
+
+    <!-- Quiz Content -->
+    <div id="quiz-section" class="container mx-auto p-4 sm:p-6 md:p-8 hidden">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Bài kiểm tra Hóa học 11</h1>
+            <p class="text-md text-gray-600 mt-2">Chương 1: Cân bằng Hoá học & Chương 2: Nitrogen - Sulfur</p>
+        </header>
+
+        <main id="quiz-container">
+            <!-- Questions will be dynamically inserted here -->
+        </main>
+
+        <div class="mt-10 text-center">
+            <button id="submit-btn" class="btn bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700">Nộp bài</button>
+        </div>
+    </div>
+    
+    <!-- Result Modal -->
+    <div id="result-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+             <div id="pdf-content">
+                <h2 class="text-2xl font-bold mb-4 text-center">Kết quả bài kiểm tra</h2>
+                <div class="mb-4 p-4 border rounded-lg bg-gray-50">
+                    <p><strong>Họ và tên:</strong> <span id="result-name"></span></p>
+                    <p><strong>Email:</strong> <span id="result-email"></span></p>
+                    <p class="text-xl font-bold mt-2"><strong>Điểm số:</strong> <span id="result-score" class="text-blue-600"></span></p>
+                </div>
+                <h3 class="text-xl font-bold mb-2 text-center">Chi tiết câu trả lời</h3>
+                <div id="detailed-results"></div>
+            </div>
+            <div class="mt-6 text-center">
+                <button id="export-pdf-btn" class="btn bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700">Xuất file PDF</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const quizData = [
+             // Chương 1
+            {
+                chapter: "Chương 1: Cân bằng Hoá học",
+                question: "<span class='question-prefix'>Câu 1:</span> Cho cân bằng: N₂O₄(g) ⇌ 2NO₂(g). Ban đầu có 0,02 mol N₂O₄ trong bình kín có thể tích 500 mL, khi phản ứng đạt trạng thái cân bằng thì nồng độ của N₂O₄ là 0,0055 M. Giá trị của hằng số cân bằng K<sub>C</sub> là",
+                options: { A: "0,87", B: "12,5", C: "6,27", D: "0,14" },
+                answer: "A"
+            },
+            {
+                chapter: "Chương 1: Cân bằng Hoá học",
+                question: "<span class='question-prefix'>Câu 2:</span> Cho 0,4 mol SO₂ và 0,6 mol O₂ vào một bình dung tích 1 lít được giữ ở một nhiệt độ không đổi. Phản ứng trong bình xảy ra như sau: 2SO₂(g) + O₂(g) ⇌ 2SO₃(g). Khi phản ứng đạt đến trạng thái cân bằng, lượng SO₃ trong bình là 0,3 mol. Tính hằng số cân bằng K<sub>C</sub> của phản ứng.",
+                options: { A: "10", B: "20", C: "6", D: "7.5" },
+                answer: "B",
+                explanation: "Tính toán: [SO₂]dư = 0.4 - 0.3 = 0.1 M; [O₂]dư = 0.6 - 0.15 = 0.45 M; [SO₃] = 0.3 M. K<sub>C</sub> = [SO₃]² / ([SO₂]² × [O₂]) = (0.3)² / ((0.1)² × 0.45) = 20."
+            },
+             {
+                chapter: "Chương 1: Cân bằng Hoá học",
+                question: "<span class='question-prefix'>Câu 3:</span> Một bình phản ứng có dung tích không đổi, chứa hỗn hợp khí N₂ và H₂ với nồng độ tương ứng là 0,3 M và 0,7 M. Sau khi phản ứng tổng hợp NH₃ đạt trạng thái cân bằng ở t°C, H₂ chiếm 50% thể tích hỗn hợp thu được. Hằng số cân bằng K<sub>C</sub> ở t°C của phản ứng có giá trị là",
+                options: { A: "2,500", B: "3,125", C: "0,609", D: "0,500" },
+                answer: "B"
+            },
+            {
+                chapter: "Chương 1: Cân bằng Hoá học",
+                question: "<span class='question-prefix'>Câu 4:</span> Xét cân bằng sau: 2SO₂(g)+ O₂(g) ⇌ 2SO₃(g). Nếu tăng nồng độ SO₂(g) (các điều kiện khác giữ không đổi), cân bằng sẽ chuyển dịch theo chiều nào?",
+                options: { A: "Chuyển dịch theo chiều nghịch.", B: "Chuyển dịch theo chiều thuận.", C: "Có thể chuyển dịch theo chiều thuận hoặc nghịch tùy thuộc vào lượng SO₂ thêm vào.", D: "Không thay đổi." },
+                answer: "B"
+            },
+            {
+                chapter: "Chương 1: Cân bằng Hoá học",
+                question: "<span class='question-prefix'>Câu 5:</span> Cho cân bằng hóa học: CaCO₃(s) ⇌ CaO(s) + CO₂(g). Biết phản ứng thuận là phản ứng thu nhiệt. Tác động nào sau đây vào hệ cân bằng để cân bằng đã cho chuyển dịch theo chiều thuận?",
+                options: { A: "Tăng nồng độ khí CO₂.", B: "Tăng áp suất.", C: "Giảm nhiệt độ.", D: "Tăng nhiệt độ." },
+                answer: "D"
+            },
+            {
+                chapter: "Chương 1: Cân bằng Hoá học",
+                question: "<span class='question-prefix'>Câu 6:</span> Dãy chất nào dưới đây chỉ gồm những chất điện li mạnh?",
+                options: { A: "HNO₃, Cu(NO₃)₂, H₃PO₄, Ca(NO₃)₂", B: "CaCl₂, CuSO₄, H₂S, HNO₃", C: "H₂SO₄, NaCl, KNO₃, Ba(NO₃)₂", D: "KCl, H₂SO₄, HNO₂, MgCl₂" },
+                answer: "C"
+            },
+             // Chương 2
+            {
+                chapter: "Chương 2: Nitrogen – Sulfur",
+                question: "<span class='question-prefix'>Câu 7:</span> Hòa tan 16,8 gam Fe bằng dung dịch HNO₃ loãng dư, sinh ra V lít khí NO (sản phẩm khử duy nhất, ở đkc). Giá trị của V là",
+                options: { A: "3,7185", B: "2,479", C: "7,437", D: "4,958" },
+                answer: "C"
+            },
+            {
+                chapter: "Chương 2: Nitrogen – Sulfur",
+                question: "<span class='question-prefix'>Câu 8:</span> Hoà tan hoàn toàn 1,92 gam Cu bằng dung dịch HNO₃, thu được x mol NO₂ (là sản phẩm khử duy nhất của N⁺⁵). Giá trị của x là",
+                options: { A: "0,06", B: "0,18", C: "0,30", D: "0,12" },
+                answer: "A"
+            },
+            {
+                chapter: "Chương 2: Nitrogen – Sulfur",
+                question: "<span class='question-prefix'>Câu 9:</span> Cho 19,2 gam kim loại M tan hết trong dung dịch HNO₃ dư thu được 4,958 lít khí NO duy nhất (đkc). Kim loại M là",
+                options: { A: "Fe", B: "Mg", C: "Al", D: "Cu" },
+                answer: "D"
+            },
+             {
+                chapter: "Chương 2: Nitrogen – Sulfur",
+                question: "<span class='question-prefix'>Câu 10:</span> Hòa tan 12,8 gam Cu trong acid H₂SO₄ đặc, nóng, dư. Thể tích khí SO₂ ở điều kiện chuẩn thu được là",
+                options: { A: "4,958 lít", B: "2,479 lít", C: "7,437 lít", D: "9,916 lít" },
+                answer: "A"
+            }
+        ];
+
+        const infoModal = document.getElementById('info-modal');
+        const startBtn = document.getElementById('start-btn');
+        const quizSection = document.getElementById('quiz-section');
+        const quizContainer = document.getElementById('quiz-container');
+        const submitBtn = document.getElementById('submit-btn');
+        const resultModal = document.getElementById('result-modal');
+        const timerDisplay = document.getElementById('timer-display');
+        const exportPdfBtn = document.getElementById('export-pdf-btn');
+
+        let userName = '';
+        let userEmail = '';
+        let timerInterval;
+        let quizSubmitted = false;
+        
+        // --- BUILD QUIZ UI ---
+        function buildQuiz() {
+            let currentChapter = "";
+            quizData.forEach((data, index) => {
+                if (data.chapter !== currentChapter) {
+                    currentChapter = data.chapter;
+                    const chapterHeader = document.createElement('h2');
+                    chapterHeader.className = "chapter-title text-2xl font-bold mt-8 mb-4 pb-2 border-b-2 border-blue-300";
+                    chapterHeader.textContent = currentChapter;
+                    quizContainer.appendChild(chapterHeader);
+                }
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-container bg-white p-6 rounded-lg mb-6';
+                questionDiv.id = `question-${index}`;
+
+                const iconDiv = document.createElement('div');
+                iconDiv.innerHTML = `<svg class="question-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.0001 2.00004C13.2981 2.00004 14.475 2.53123 15.3403 3.44749L15.3821 3.50004L18.5001 9.00004H21.0001C21.5524 9.00004 22.0001 9.44776 22.0001 10V12C22.0001 12.5523 21.5524 13 21.0001 13H19.6451L17.5001 17.5V20C17.5001 20.5523 17.0524 21 16.5001 21H7.50012C6.94784 21 6.50012 20.5523 6.50012 20V17.5L4.35512 13H3.00012C2.44784 13 2.00012 12.5523 2.00012 12V10C2.00012 9.44776 2.44784 9.00004 3.00012 9.00004H5.50012L8.61812 3.50004L8.65989 3.44749C9.52516 2.53123 10.7021 2.00004 12.0001 2.00004ZM12.0001 4.00004C11.3364 4.00004 10.7077 4.24647 10.2191 4.68372L10.1981 4.70004L7.50012 9.41604L7.75012 11H16.2501L16.5001 9.41604L13.8021 4.70004L13.7811 4.68372C13.2926 4.24647 12.6639 4.00004 12.0001 4.00004Z"></path></svg>`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'question-content';
+                const questionText = document.createElement('p');
+                questionText.className = 'font-semibold text-lg mb-4';
+                questionText.innerHTML = data.question;
+                
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'options-container space-y-3';
+                for (let key in data.options) {
+                    const label = document.createElement('label');
+                    label.className = 'flex items-center p-3 border rounded-lg hover:bg-gray-100 cursor-pointer';
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `question${index}`;
+                    radio.value = key;
+                    radio.className = 'mr-3 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300';
+                    const optionText = document.createElement('span');
+                    optionText.textContent = `${key}. ${data.options[key]}`;
+                    label.appendChild(radio);
+                    label.appendChild(optionText);
+                    optionsDiv.appendChild(label);
+                }
+                
+                contentDiv.appendChild(questionText);
+                contentDiv.appendChild(optionsDiv);
+                questionDiv.appendChild(iconDiv);
+                questionDiv.appendChild(contentDiv);
+                quizContainer.appendChild(questionDiv);
+            });
+        }
+        
+        // --- TIMER LOGIC ---
+        function startTimer(duration, display) {
+            let timer = duration, minutes, seconds;
+            timerInterval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                display.textContent = minutes + ":" + seconds;
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    submitQuiz(); 
+                }
+            }, 1000);
+        }
+
+        // --- SUBMIT QUIZ LOGIC ---
+        function submitQuiz() {
+            if (quizSubmitted) return;
+            quizSubmitted = true;
+            
+            clearInterval(timerInterval);
+            let score = 0;
+            const detailedResultsContainer = document.getElementById('detailed-results');
+            detailedResultsContainer.innerHTML = ''; // Clear previous results
+
+            quizData.forEach((data, index) => {
+                const questionDiv = document.getElementById(`question-${index}`);
+                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'p-3 mb-3 border rounded-lg';
+                let userAnswerHTML = selectedOption ? `${selectedOption.value}. ${data.options[selectedOption.value]}` : 'Chưa trả lời';
+                
+                if (selectedOption && selectedOption.value === data.answer) {
+                    score++;
+                    resultDiv.classList.add('bg-green-100', 'border-green-400');
+                } else {
+                    resultDiv.classList.add('bg-red-100', 'border-red-400');
+                }
+
+                resultDiv.innerHTML = `
+                    <p class="font-bold">${data.question.replace(/<span class='question-prefix'>/g, '').replace(/<\/span>/g, '')}</p>
+                    <p>Bạn chọn: ${userAnswerHTML}</p>
+                    <p class="text-green-700 font-semibold">Đáp án đúng: ${data.answer}. ${data.options[data.answer]}</p>
+                `;
+                detailedResultsContainer.appendChild(resultDiv);
+            });
+
+            document.getElementById('result-name').textContent = userName;
+            document.getElementById('result-email').textContent = userEmail;
+            document.getElementById('result-score').textContent = `${score} / ${quizData.length}`;
+            
+            quizSection.classList.add('hidden');
+            timerDisplay.classList.add('hidden');
+            resultModal.classList.remove('hidden');
+        }
+        
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', () => {
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+            const errorEl = document.getElementById('info-error');
+
+            if (nameInput.value.trim() === '' || emailInput.value.trim() === '') {
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            userName = nameInput.value;
+            userEmail = emailInput.value;
+
+            infoModal.classList.add('hidden');
+            quizSection.classList.remove('hidden');
+            timerDisplay.classList.remove('hidden');
+            
+            const fifteenMinutes = 60 * 15;
+            startTimer(fifteenMinutes, timerDisplay);
+        });
+
+        submitBtn.addEventListener('click', submitQuiz);
+
+        exportPdfBtn.addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const content = document.getElementById('pdf-content');
+            
+            html2canvas(content, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+                const ratio = canvasWidth / canvasHeight;
+                const imgWidth = pdfWidth - 20; // with margin
+                const imgHeight = imgWidth / ratio;
+                
+                let heightLeft = imgHeight;
+                let position = 10; // top margin
+                
+                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= (pdfHeight - 20);
+
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight + 10; // reset position
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                    heightLeft -= (pdfHeight - 20);
+                }
+                
+                pdf.save(`ket-qua-${userName.replace(/\s/g, '_')}.pdf`);
+            });
+        });
+
+        // Initial build
+        buildQuiz();
+    </script>
+
+</body>
+</html>
+
